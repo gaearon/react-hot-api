@@ -64,9 +64,6 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	'use strict';
 
-	/**
-	 * Based on https://github.com/facebook/react/blob/master/src/class/ReactClass.js#L637
-	 */
 	function bindAutoBindMethod(component, method) {
 	  var boundMethod = method.bind(component);
 
@@ -107,9 +104,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	/**
 	 * Performs auto-binding similar to how React does it.
 	 * Skips already auto-bound methods.
-	 * Based on https://github.com/facebook/react/blob/master/src/class/ReactClass.js#L679.
+	 * Based on https://github.com/facebook/react/blob/b264372e2b3ad0b0c0c0cc95a2f383e4a1325c3d/src/classic/class/ReactClass.js#L639-L705
 	 */
-	module.exports = function bindAutoBindMethods(component) {
+	module.exports = function bindAutoBindMethods(internalInstance) {
+	  var component = typeof internalInstance.getPublicInstance === 'function' ?
+	    internalInstance.getPublicInstance() :
+	    internalInstance;
+
 	  for (var autoBindKey in component.__reactAutoBindMap) {
 	    if (!component.__reactAutoBindMap.hasOwnProperty(autoBindKey)) {
 	      continue;
