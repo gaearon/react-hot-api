@@ -23,6 +23,6 @@
     "webpack": "1.4.8"
   },
   "dependencies": {
-    "react-proxy": "^0.6.1"
+    "react-proxy": "^0.6.5"
   }
 }

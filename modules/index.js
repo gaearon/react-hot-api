@@ -16,9 +16,11 @@ function makePatchReactClass(React) {
       proxy = createProxy(NextClass);
     } else {
       var mountedInstances = proxy.update(NextClass);
-      requestAnimationFrame(function () {
-        mountedInstances.forEach(forceUpdate);
-      });
+      if (mountedInstances.length > 0) {
+        setTimeout(function () {
+          mountedInstances.forEach(forceUpdate);
+        });
+      }
     }
 
     return proxy.get();
