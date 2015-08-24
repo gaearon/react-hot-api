@@ -72,9 +72,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	      proxy = createProxy(NextClass);
 	    } else {
 	      var mountedInstances = proxy.update(NextClass);
-	      requestAnimationFrame(function () {
-	        mountedInstances.forEach(forceUpdate);
-	      });
+	      if (mountedInstances.length > 0) {
+	        setTimeout(function () {
+	          mountedInstances.forEach(forceUpdate);
+	        });
+	      }
 	    }
 
 	    return proxy.get();
@@ -156,7 +158,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 2 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var getLength = __webpack_require__(31),
+	var getLength = __webpack_require__(32),
 	    isLength = __webpack_require__(5);
 
 	/**
@@ -195,7 +197,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var isNative = __webpack_require__(36);
+	var isNative = __webpack_require__(37);
 
 	/**
 	 * Gets the native function at `key` of `object`.
@@ -371,7 +373,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	exports.createProxy = _interopRequire(_createClassProxy);
 
-	var _getForceUpdate = __webpack_require__(15);
+	var _getForceUpdate = __webpack_require__(16);
 
 	exports.getForceUpdate = _interopRequire(_getForceUpdate);
 
@@ -446,7 +448,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	var getNative = __webpack_require__(4),
 	    isArrayLike = __webpack_require__(2),
 	    isObject = __webpack_require__(1),
-	    shimKeys = __webpack_require__(34);
+	    shimKeys = __webpack_require__(35);
 
 	/* Native method references for those with the same name as other `lodash` methods. */
 	var nativeKeys = getNative(Object, 'keys');
@@ -511,8 +513,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	Object.defineProperty(exports, '__esModule', {
 	  value: true
 	});
-	exports.deleteUnknownAutoBindMethods = deleteUnknownAutoBindMethods;
-	exports.bindAutoBindMethods = bindAutoBindMethods;
+	exports['default'] = bindAutoBindMethods;
 	function bindAutoBindMethod(component, method) {
 	  var boundMethod = method.bind(component);
 
@@ -543,32 +544,26 @@ return /******/ (function(modules) { // webpackBootstrap
 	  return boundMethod;
 	}
 
-	/**
-	 * Deletes autobound methods that are no longer in autobind map.
-	 */
-
-	function deleteUnknownAutoBindMethods(component) {
-	  if (!component.__reactAutoBindMap) {
-	    return;
-	  }
-
-	  for (var name in component) {
-	    if (component.hasOwnProperty(name) && !component.__reactAutoBindMap.hasOwnProperty(name) && typeof Object.getOwnPropertyDescriptor(component, name).value === 'function' && component[name].__reactBoundArguments === null) {
-	      delete component[name];
-	    }
-	  }
-	}
-
 	function bindAutoBindMethods(component) {
 	  for (var autoBindKey in component.__reactAutoBindMap) {
-	    if (component.__reactAutoBindMap.hasOwnProperty(autoBindKey)) {
-	      var method = component.__reactAutoBindMap[autoBindKey];
-	      component[autoBindKey] = bindAutoBindMethod(component, method);
+	    if (!component.__reactAutoBindMap.hasOwnProperty(autoBindKey)) {
+	      return;
 	    }
+
+	    // Tweak: skip methods that are already bound.
+	    // This is to preserve method reference in case it is used
+	    // as a subscription handler that needs to be detached later.
+	    if (component.hasOwnProperty(autoBindKey) && component[autoBindKey].__reactBoundContext === component) {
+	      continue;
+	    }
+
+	    var method = component.__reactAutoBindMap[autoBindKey];
+	    component[autoBindKey] = bindAutoBindMethod(component, method);
 	  }
 	}
 
 	;
+	module.exports = exports['default'];
 
 /***/ },
 /* 13 */
@@ -589,6 +584,12 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var _bindAutoBindMethods = __webpack_require__(12);
 
+	var _bindAutoBindMethods2 = _interopRequireDefault(_bindAutoBindMethods);
+
+	var _deleteUnknownAutoBindMethods = __webpack_require__(15);
+
+	var _deleteUnknownAutoBindMethods2 = _interopRequireDefault(_deleteUnknownAutoBindMethods);
+
 	function proxyClass(InitialClass) {
 	  // Prevent double wrapping.
 	  // Given a proxy class, return the existing proxy managing it.
@@ -599,9 +600,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	  var prototypeProxy = (0, _createPrototypeProxy2['default'])();
 	  var CurrentClass = undefined;
 
-	  function ProxyClass() {
-	    CurrentClass.apply(this, arguments);
-	  }
+	  // Create a proxy constructor with matching name
+	  var ProxyClass = new Function('getCurrentClass', 'return function ' + (InitialClass.name || 'ProxyClass') + '() {\n      return getCurrentClass().apply(this, arguments);\n    }')(function () {
+	    return CurrentClass;
+	  });
 
 	  // Point proxy constructor to the proxy prototype
 	  ProxyClass.prototype = prototypeProxy.get();
@@ -627,8 +629,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	    ProxyClass.displayName = NextClass.name || NextClass.displayName;
 
 	    // We might have added new methods that need to be auto-bound
-	    mountedInstances.forEach(_bindAutoBindMethods.bindAutoBindMethods);
-	    mountedInstances.forEach(_bindAutoBindMethods.deleteUnknownAutoBindMethods);
+	    mountedInstances.forEach(_bindAutoBindMethods2['default']);
+	    mountedInstances.forEach(_deleteUnknownAutoBindMethods2['default']);
 
 	    // Let the user take care of redrawing
 	    return mountedInstances;
@@ -664,11 +666,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
-	var _lodashObjectAssign = __webpack_require__(37);
+	var _lodashObjectAssign = __webpack_require__(38);
 
 	var _lodashObjectAssign2 = _interopRequireDefault(_lodashObjectAssign);
 
-	var _lodashArrayDifference = __webpack_require__(16);
+	var _lodashArrayDifference = __webpack_require__(17);
 
 	var _lodashArrayDifference2 = _interopRequireDefault(_lodashArrayDifference);
 
@@ -694,14 +696,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	  }
 
 	  /**
-	   * Augments the original componentWillMount with instance tracking.
-	   * We're using it instead of componentDidMount because it works with shallow rendering.
-	   * TODO: maybe this is a bad idea and we should instead fix shallow rendering.
+	   * Augments the original componentDidMount with instance tracking.
 	   */
-	  function proxiedComponentWillMount() {
+	  function proxiedComponentDidMount() {
 	    mountedInstances.push(this);
-	    if (typeof current.componentWillMount === 'function') {
-	      return current.componentWillMount.apply(this, arguments);
+	    if (typeof current.componentDidMount === 'function') {
+	      return current.componentDidMount.apply(this, arguments);
 	    }
 	  }
 
@@ -709,7 +709,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	   * Augments the original componentWillUnmount with instance tracking.
 	   */
 	  function proxiedComponentWillUnmount() {
-	    mountedInstances.splice(mountedInstances.indexOf(this), 1);
+	    var index = mountedInstances.indexOf(this);
+	    // Unless we're in a weird environment without componentDidMount
+	    if (index !== -1) {
+	      mountedInstances.splice(index, 1);
+	    }
 	    if (typeof current.componentWillUnmount === 'function') {
 	      return current.componentWillUnmount.apply(this, arguments);
 	    }
@@ -790,7 +794,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    });
 
 	    // Track mounting and unmounting
-	    defineProxyPropertyWithValue('componentWillMount', proxiedComponentWillMount);
+	    defineProxyPropertyWithValue('componentDidMount', proxiedComponentDidMount);
 	    defineProxyPropertyWithValue('componentWillUnmount', proxiedComponentWillUnmount);
 	    defineProxyPropertyWithValue('__reactAutoBindMap', createAutoBindMap());
 
@@ -820,6 +824,92 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
+	'use strict';
+
+	Object.defineProperty(exports, '__esModule', {
+	  value: true
+	});
+	exports['default'] = deleteUnknownAutoBindMethods;
+	function shouldDeleteClassicInstanceMethod(component, name) {
+	  if (component.__reactAutoBindMap.hasOwnProperty(name)) {
+	    // It's a known autobound function, keep it
+	    return false;
+	  }
+
+	  if (component[name].__reactBoundArguments !== null) {
+	    // It's a function bound to specific args, keep it
+	    return false;
+	  }
+
+	  // It's a cached bound method for a function
+	  // that was deleted by user, so we delete it from component.
+	  return true;
+	}
+
+	function shouldDeleteModernInstanceMethod(component, name) {
+	  var prototype = component.constructor.prototype;
+
+	  var prototypeDescriptor = Object.getOwnPropertyDescriptor(prototype, name);
+
+	  if (!prototypeDescriptor || !prototypeDescriptor.get) {
+	    // This is definitely not an autobinding getter
+	    return false;
+	  }
+
+	  if (prototypeDescriptor.get().length !== component[name].length) {
+	    // The length doesn't match, bail out
+	    return false;
+	  }
+
+	  // This seems like a method bound using an autobinding getter on the prototype
+	  // Hopefully we won't run into too many false positives.
+	  return true;
+	}
+
+	function shouldDeleteInstanceMethod(component, name) {
+	  var descriptor = Object.getOwnPropertyDescriptor(component, name);
+	  if (typeof descriptor.value !== 'function') {
+	    // Not a function, or something fancy: bail out
+	    return;
+	  }
+
+	  if (component.__reactAutoBindMap) {
+	    // Classic
+	    return shouldDeleteClassicInstanceMethod(component, name);
+	  } else {
+	    // Modern
+	    return shouldDeleteModernInstanceMethod(component, name);
+	  }
+	}
+
+	/**
+	 * Deletes autobound methods from the instance.
+	 *
+	 * For classic React classes, we only delete the methods that no longer exist in map.
+	 * This means the user actually deleted them in code.
+	 *
+	 * For modern classes, we delete methods that exist on prototype with the same length,
+	 * and which have getters on prototype, but are normal values on the instance.
+	 * This is usually an indication that an autobinding decorator is being used,
+	 * and the getter will re-generate the memoized handler on next access.
+	 */
+
+	function deleteUnknownAutoBindMethods(component) {
+	  var names = Object.getOwnPropertyNames(component);
+
+	  names.forEach(function (name) {
+	    if (shouldDeleteInstanceMethod(component, name)) {
+	      delete component[name];
+	    }
+	  });
+	}
+
+	module.exports = exports['default'];
+
+/***/ },
+/* 16 */
+/***/ function(module, exports, __webpack_require__) {
+
 	/**
 	 * Returns a function that force-updates an instance
 	 * regardless of whether it descends from React.Component or not.
@@ -840,11 +930,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = exports["default"];
 
 /***/ },
-/* 16 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var baseDifference = __webpack_require__(22),
-	    baseFlatten = __webpack_require__(23),
+	var baseDifference = __webpack_require__(23),
+	    baseFlatten = __webpack_require__(24),
 	    isArrayLike = __webpack_require__(2),
 	    isObjectLike = __webpack_require__(3),
 	    restParam = __webpack_require__(10);
@@ -875,10 +965,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 17 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(global) {var cachePush = __webpack_require__(28),
+	/* WEBPACK VAR INJECTION */(function(global) {var cachePush = __webpack_require__(29),
 	    getNative = __webpack_require__(4);
 
 	/** Native method references. */
@@ -911,7 +1001,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 18 */
+/* 19 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -937,7 +1027,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 19 */
+/* 20 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var keys = __webpack_require__(11);
@@ -975,10 +1065,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 20 */
+/* 21 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var baseCopy = __webpack_require__(21),
+	var baseCopy = __webpack_require__(22),
 	    keys = __webpack_require__(11);
 
 	/**
@@ -1000,7 +1090,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 21 */
+/* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -1029,12 +1119,12 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 22 */
+/* 23 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var baseIndexOf = __webpack_require__(24),
-	    cacheIndexOf = __webpack_require__(27),
-	    createCache = __webpack_require__(30);
+	var baseIndexOf = __webpack_require__(25),
+	    cacheIndexOf = __webpack_require__(28),
+	    createCache = __webpack_require__(31);
 
 	/** Used as the size to enable large array optimizations. */
 	var LARGE_ARRAY_SIZE = 200;
@@ -1090,10 +1180,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 23 */
+/* 24 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var arrayPush = __webpack_require__(18),
+	var arrayPush = __webpack_require__(19),
 	    isArguments = __webpack_require__(7),
 	    isArray = __webpack_require__(8),
 	    isArrayLike = __webpack_require__(2),
@@ -1137,10 +1227,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 24 */
+/* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var indexOfNaN = __webpack_require__(32);
+	var indexOfNaN = __webpack_require__(33);
 
 	/**
 	 * The base implementation of `_.indexOf` without support for binary searches.
@@ -1170,7 +1260,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 25 */
+/* 26 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -1190,10 +1280,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 26 */
+/* 27 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var identity = __webpack_require__(39);
+	var identity = __webpack_require__(40);
 
 	/**
 	 * A specialized version of `baseCallback` which only supports `this` binding
@@ -1235,7 +1325,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 27 */
+/* 28 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var isObject = __webpack_require__(1);
@@ -1260,7 +1350,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 28 */
+/* 29 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var isObject = __webpack_require__(1);
@@ -1286,11 +1376,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 29 */
+/* 30 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var bindCallback = __webpack_require__(26),
-	    isIterateeCall = __webpack_require__(33),
+	var bindCallback = __webpack_require__(27),
+	    isIterateeCall = __webpack_require__(34),
 	    restParam = __webpack_require__(10);
 
 	/**
@@ -1333,10 +1423,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 30 */
+/* 31 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(global) {var SetCache = __webpack_require__(17),
+	/* WEBPACK VAR INJECTION */(function(global) {var SetCache = __webpack_require__(18),
 	    getNative = __webpack_require__(4);
 
 	/** Native method references. */
@@ -1361,10 +1451,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 31 */
+/* 32 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var baseProperty = __webpack_require__(25);
+	var baseProperty = __webpack_require__(26);
 
 	/**
 	 * Gets the "length" property value of `object`.
@@ -1382,7 +1472,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 32 */
+/* 33 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -1411,7 +1501,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 33 */
+/* 34 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var isArrayLike = __webpack_require__(2),
@@ -1445,14 +1535,14 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 34 */
+/* 35 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var isArguments = __webpack_require__(7),
 	    isArray = __webpack_require__(8),
 	    isIndex = __webpack_require__(6),
 	    isLength = __webpack_require__(5),
-	    keysIn = __webpack_require__(38);
+	    keysIn = __webpack_require__(39);
 
 	/** Used for native method references. */
 	var objectProto = Object.prototype;
@@ -1492,7 +1582,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 35 */
+/* 36 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var isObject = __webpack_require__(1);
@@ -1536,10 +1626,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 36 */
+/* 37 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var isFunction = __webpack_require__(35),
+	var isFunction = __webpack_require__(36),
 	    isObjectLike = __webpack_require__(3);
 
 	/** Used to detect host constructors (Safari > 5). */
@@ -1590,12 +1680,12 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 37 */
+/* 38 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var assignWith = __webpack_require__(19),
-	    baseAssign = __webpack_require__(20),
-	    createAssigner = __webpack_require__(29);
+	var assignWith = __webpack_require__(20),
+	    baseAssign = __webpack_require__(21),
+	    createAssigner = __webpack_require__(30);
 
 	/**
 	 * Assigns own enumerable properties of source object(s) to the destination
@@ -1639,7 +1729,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 38 */
+/* 39 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var isArguments = __webpack_require__(7),
@@ -1709,7 +1799,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 39 */
+/* 40 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
