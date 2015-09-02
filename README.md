@@ -2,7 +2,7 @@
 **Don’t use this for new projects.**  
 **[React Proxy](https://github.com/gaearon/react-proxy) is much more advanced, has a better API, and is covered by tests.**
 
-React Hot API
+<s>React Hot API</s>
 =========
 
 This is a generic library implementing hot reload for React components without unmounting or losing their state.  
