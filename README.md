@@ -1,6 +1,6 @@
-># Deprecation Notice
->Don’t use this for new projects.  
->[React Proxy](https://github.com/gaearon/react-proxy) is much more advanced, has a better API, and is covered by tests.
+# Deprecation Notice
+**Don’t use this for new projects.**  
+**[React Proxy](https://github.com/gaearon/react-proxy) is much more advanced, has a better API, and is covered by tests.**
 
 React Hot API
 =========
