@@ -593,7 +593,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	function proxyClass(InitialClass) {
 	  // Prevent double wrapping.
 	  // Given a proxy class, return the existing proxy managing it.
-	  if (InitialClass.__reactPatchProxy) {
+	  if (Object.prototype.hasOwnProperty.call(InitialClass, '__reactPatchProxy')) {
 	    return InitialClass.__reactPatchProxy;
 	  }
 
@@ -608,46 +608,75 @@ return /******/ (function(modules) { // webpackBootstrap
 	  // Point proxy constructor to the proxy prototype
 	  ProxyClass.prototype = prototypeProxy.get();
 
-	  function update(NextClass) {
-	    if (typeof NextClass !== 'function') {
-	      throw new Error('Expected a constructor.');
+	  function update(_x) {
+	    var _again = true;
+
+	    _function: while (_again) {
+	      var NextClass = _x;
+	      mountedInstances = undefined;
+	      _again = false;
+
+	      if (typeof NextClass !== 'function') {
+	        throw new Error('Expected a constructor.');
+	      }
+
+	      // Prevent proxy cycles
+	      if (Object.prototype.hasOwnProperty.call(NextClass, '__reactPatchProxy')) {
+	        _x = NextClass.__reactPatchProxy.__getCurrent();
+	        _again = true;
+	        continue _function;
+	      }
+
+	      // Save the next constructor so we call it
+	      CurrentClass = NextClass;
+
+	      // Update the prototype proxy with new methods
+	      var mountedInstances = prototypeProxy.update(NextClass.prototype);
+
+	      // Set up the constructor property so accessing the statics work
+	      ProxyClass.prototype.constructor = ProxyClass;
+
+	      // Naïvely proxy static methods and properties
+	      ProxyClass.prototype.constructor.__proto__ = NextClass;
+
+	      // Try to infer displayName
+	      ProxyClass.displayName = NextClass.name || NextClass.displayName;
+
+	      // We might have added new methods that need to be auto-bound
+	      mountedInstances.forEach(_bindAutoBindMethods2['default']);
+	      mountedInstances.forEach(_deleteUnknownAutoBindMethods2['default']);
+
+	      // Let the user take care of redrawing
+	      return mountedInstances;
 	    }
-
-	    // Save the next constructor so we call it
-	    CurrentClass = NextClass;
-
-	    // Update the prototype proxy with new methods
-	    var mountedInstances = prototypeProxy.update(NextClass.prototype);
-
-	    // Set up the constructor property so accessing the statics work
-	    ProxyClass.prototype.constructor = ProxyClass;
-
-	    // Naïvely proxy static methods and properties
-	    ProxyClass.prototype.constructor.__proto__ = NextClass;
-
-	    // Try to infer displayName
-	    ProxyClass.displayName = NextClass.name || NextClass.displayName;
-
-	    // We might have added new methods that need to be auto-bound
-	    mountedInstances.forEach(_bindAutoBindMethods2['default']);
-	    mountedInstances.forEach(_deleteUnknownAutoBindMethods2['default']);
-
-	    // Let the user take care of redrawing
-	    return mountedInstances;
 	  };
 
 	  function get() {
 	    return ProxyClass;
 	  }
 
+	  function getCurrent() {
+	    return CurrentClass;
+	  }
+
 	  update(InitialClass);
 
-	  var proxy = {
-	    get: get,
-	    update: update
-	  };
+	  var proxy = { get: get, update: update };
 
-	  ProxyClass.__reactPatchProxy = proxy;
+	  Object.defineProperty(proxy, '__getCurrent', {
+	    configurable: false,
+	    writable: false,
+	    enumerable: false,
+	    value: getCurrent
+	  });
+
+	  Object.defineProperty(ProxyClass, '__reactPatchProxy', {
+	    configurable: false,
+	    writable: false,
+	    enumerable: false,
+	    value: proxy
+	  });
+
 	  return proxy;
 	}
 
@@ -680,6 +709,20 @@ return /******/ (function(modules) { // webpackBootstrap
 	  var mountedInstances = [];
 
 	  /**
+	   * Creates a proxied toString() method pointing to the current version's toString().
+	   */
+	  function proxyToString(name) {
+	    // Wrap to always call the current version
+	    return function toString() {
+	      if (typeof current[name] === 'function') {
+	        return current[name].toString();
+	      } else {
+	        return '<method was deleted>';
+	      }
+	    };
+	  }
+
+	  /**
 	   * Creates a proxied method that calls the current version, whenever available.
 	   */
 	  function proxyMethod(name) {
@@ -692,6 +735,8 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    // Copy properties of the original function, if any
 	    (0, _lodashObjectAssign2['default'])(proxiedMethod, current[name]);
+	    proxiedMethod.toString = proxyToString(name);
+
 	    return proxiedMethod;
 	  }
 
@@ -704,6 +749,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      return current.componentDidMount.apply(this, arguments);
 	    }
 	  }
+	  proxiedComponentDidMount.toString = proxyToString('componentDidMount');
 
 	  /**
 	   * Augments the original componentWillUnmount with instance tracking.
@@ -718,6 +764,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      return current.componentWillUnmount.apply(this, arguments);
 	    }
 	  }
+	  proxiedComponentWillUnmount.toString = proxyToString('componentWillUnmount');
 
 	  /**
 	   * Defines a property on the proxy.
